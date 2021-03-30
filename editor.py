@@ -11,12 +11,12 @@ class Action(Enum):
     DEL_EDGE = auto(),
 
 
-class Example(tk.Frame):
+class Editor(tk.Frame):
     """Illustrate how to drag items on a Tkinter canvas"""
 
     def __init__(self, parent):
         tk.Frame.__init__(self, parent)
-        self.G = nx.DiGraph()  # 有向グラフ (Directed Graph)
+        self.G = None # nx.DiGraph()  # 有向グラフ (Directed Graph)
         self.counts = 0
         self.parent = parent
         favicon_data ='''R0lGODlhJgAmAHAAACH5BAEAAPwALAAAAAAmACYAhwAAAAAAMwAAZgAAmQAAzAAA/wArAAArMwArZgArmQArzAAr/wBVAABVMwBVZgBVmQBVzABV/wCAAACAMwCAZgCAmQCAzACA/wCqAACqMwCqZgCqmQCqzACq/wDVAADVMwDVZgDVmQDVzADV/wD/AAD/MwD/ZgD/mQD/zAD//zMAADMAMzMAZjMAmTMAzDMA/zMrADMrMzMrZjMrmTMrzDMr/zNVADNVMzNVZjNVmTNVzDNV/zOAADOAMzOAZjOAmTOAzDOA/zOqADOqMzOqZjOqmTOqzDOq/zPVADPVMzPVZjPVmTPVzDPV/zP/ADP/MzP/ZjP/mTP/zDP//2YAAGYAM2YAZmYAmWYAzGYA/2YrAGYrM2YrZmYrmWYrzGYr/2ZVAGZVM2ZVZmZVmWZVzGZV/2aAAGaAM2aAZmaAmWaAzGaA/2aqAGaqM2aqZmaqmWaqzGaq/2bVAGbVM2bVZmbVmWbVzGbV/2b/AGb/M2b/Zmb/mWb/zGb//5kAAJkAM5kAZpkAmZkAzJkA/5krAJkrM5krZpkrmZkrzJkr/5lVAJlVM5lVZplVmZlVzJlV/5mAAJmAM5mAZpmAmZmAzJmA/5mqAJmqM5mqZpmqmZmqzJmq/5nVAJnVM5nVZpnVmZnVzJnV/5n/AJn/M5n/Zpn/mZn/zJn//8wAAMwAM8wAZswAmcwAzMwA/8wrAMwrM8wrZswrmcwrzMwr/8xVAMxVM8xVZsxVmcxVzMxV/8yAAMyAM8yAZsyAmcyAzMyA/8yqAMyqM8yqZsyqmcyqzMyq/8zVAMzVM8zVZszVmczVzMzV/8z/AMz/M8z/Zsz/mcz/zMz///8AAP8AM/8AZv8Amf8AzP8A//8rAP8rM/8rZv8rmf8rzP8r//9VAP9VM/9VZv9Vmf9VzP9V//+AAP+AM/+AZv+Amf+AzP+A//+qAP+qM/+qZv+qmf+qzP+q///VAP/VM//VZv/Vmf/VzP/V////AP//M///Zv//mf//zP///wAAAAAAAAAAAAAAAAj/APcJHEiQoKY0OWYkQJAgxxhNBSNKlKgpgQABAxAIYLjR4kaIE0MK1HRRwEKGKE9a9AhSZMEZHREgyGiRY82FGU26HLhsI0qaP2UuHIryojKXyjqaFLrxosacNWcWJRYyGkapODUiUKNpE7GDK5f+FHBUos+TOceIHLMxY0aOEmdovLkx2s59D8SGLUhs6VABOe4OZJtVY8t9PmkCFkwwzVm4I/VuZFwwwducIBUyzGlXoj53w+iFvEpUYFOZAwJHJJYKlWtUqcoWTCM1576+KclGHOY6le/WqHiZlclRk5raMiPSg/0qlatUzVu7i7iyJpkcRFNHfAXbOXTYz1FF/0xzE0GOHI8pRQTvO3p0VJ0HkrQpVKqAw/vo+Wnfmrt3VO3wFZNJcmWFHzHsoeKegqhQZZBbKOUwl0ZprPfcd975hopoBhE3FHpoqVVQdM+R6F1EY0AI2HEraRRRPahcyF5rsg2kEkNj4PbXMrsxB11rfgRYkFVY3YdYi4spx91rr3BYEGH2CYRebjXy5eRwKDEU2UJLCSBQlTvRN4CRpmVpkWqUTcmliwMlldWZaS6lGH5qzrURjy4tYydTCQwHFJc5gPklW28R5aVERNakonmUaJKJGmNohZZ9eErUk198NpXTZhNy6WBIeipF1JoJvMmRRpW6NGVQmIpVVJ+UaR4yZqf0zeQRmZSNpOiEJjWVAH65yodQgeelAexEAQEAOw=='''
@@ -53,8 +53,8 @@ class Example(tk.Frame):
 
         # add a submenu
         sub_menu = tk.Menu(file_menu, tearoff=0)
-        sub_menu.add_command(label='Graph')
-        sub_menu.add_command(label='Di graph')
+        sub_menu.add_command(label='Graph', command=self.init_graph)
+        sub_menu.add_command(label='Di graph', command=self.init_di_graph)
         file_menu.add_cascade(
             label="New",
             menu=sub_menu
@@ -62,11 +62,16 @@ class Example(tk.Frame):
         file_menu.add_command(label='Open')
         file_menu.add_command(label='Save as...')
 
-        edit_menu = tk.Menu(self.menu_bar, tearoff=0)
-        edit_menu.add_command(label='Add node', command=self.add_node_mode)
-        edit_menu.add_command(label='Add edge', command=self.add_edge_mode)
-        edit_menu.add_command(label='Delete node', command=self.del_edge_mode)
-        self.menu_bar.add_cascade(label='Edit', menu=edit_menu)
+        self.edit_menu = tk.Menu(self.menu_bar, tearoff=0)
+        self.edit_menu.add_command(label='Add node', command=self.add_node_mode)
+        self.edit_menu.add_command(label='Add edge', command=self.add_edge_mode)
+        self.edit_menu.add_command(label='Delete node', command=self.del_edge_mode)
+        self.edit_menu.entryconfig(0, state=tk.DISABLED)
+        self.edit_menu.entryconfig(1, state=tk.DISABLED)
+        self.edit_menu.entryconfig(2, state=tk.DISABLED)
+        self.menu_bar.add_cascade(label='Edit', menu=self.edit_menu)
+
+
 
         # 右クリックでノードのattr編集
         self.attribute_dict = {i: "" for i in range(5)}
@@ -80,8 +85,29 @@ class Example(tk.Frame):
         self.entry_key_list = []
         self.entry_item_list = []
 
+        self.is_di_graph = False
+
         # State
         self.action = Action.ADD_NODE
+
+    def init_graph(self):
+        self.is_di_graph = False
+        self.G = nx.Graph()
+        self.canvas.delete(tk.ALL)
+
+        self.edit_menu.entryconfig(0, state=tk.NORMAL)
+        self.edit_menu.entryconfig(1, state=tk.NORMAL)
+        self.edit_menu.entryconfig(2, state=tk.NORMAL)
+
+
+    def init_di_graph(self):
+        self.is_di_graph = True
+        self.G = nx.DiGraph()
+        self.canvas.delete(tk.ALL)
+
+        self.edit_menu.entryconfig(0, state=tk.NORMAL)
+        self.edit_menu.entryconfig(1, state=tk.NORMAL)
+        self.edit_menu.entryconfig(2, state=tk.NORMAL)
 
     def create_new_window(self, event):
 
@@ -245,17 +271,25 @@ class Example(tk.Frame):
             self.canvas.delete(self.delete_candidate)
 
             # edge for tk
-            for edge in self.G.in_edges(self.delete_candidate):
-                edge_name = 'edge_' + edge[0] + '_' + edge[1]
-                self.canvas.delete(edge_name)
-                edge_name = 'edge_' + edge[1] + '_' + edge[0]
-                self.canvas.delete(edge_name)
+            if self.is_di_graph:
+                for edge in self.G.in_edges(self.delete_candidate):
+                    edge_name = 'edge_' + edge[0] + '_' + edge[1]
+                    self.canvas.delete(edge_name)
+                    edge_name = 'edge_' + edge[1] + '_' + edge[0]
+                    self.canvas.delete(edge_name)
 
-            for edge in self.G.out_edges(self.delete_candidate):
-                edge_name = 'edge_' + edge[0] + '_' + edge[1]
-                self.canvas.delete(edge_name)
-                edge_name = 'edge_' + edge[1] + '_' + edge[0]
-                self.canvas.delete(edge_name)
+                for edge in self.G.out_edges(self.delete_candidate):
+                    edge_name = 'edge_' + edge[0] + '_' + edge[1]
+                    self.canvas.delete(edge_name)
+                    edge_name = 'edge_' + edge[1] + '_' + edge[0]
+                    self.canvas.delete(edge_name)
+            else:
+                for edge in self.G.edges(self.delete_candidate):
+                    edge_name = 'edge_' + edge[0] + '_' + edge[1]
+                    self.canvas.delete(edge_name)
+                    edge_name = 'edge_' + edge[1] + '_' + edge[0]
+                    self.canvas.delete(edge_name)
+
 
             # node and dedge for nx
             self.G.remove_node(self.delete_candidate)
@@ -273,8 +307,14 @@ class Example(tk.Frame):
             edge_name = f'edge_{node_from}_{node_to}'
 
             if (node_from, node_to) not in self.G.edges:
-                self.canvas.create_line(coord, arrow=tk.FIRST, fill='black', tags=("edge", edge_name))
+                if self.is_di_graph:
+                    self.canvas.create_line(coord, arrow=tk.FIRST, fill='black', tags=("edge", edge_name))
+                else:
+                    self.canvas.create_line(coord, arrow=tk.BOTH, fill='black', tags=("edge", edge_name))
+
                 self.G.add_edge(node_from, node_to)
+                print(self.G.edges)
+                print(edge_name)
         else:
             pass
 
@@ -375,13 +415,34 @@ class Example(tk.Frame):
         # move edges connected by target node
         node_and_pos = nx.get_node_attributes(self.G, 'pos')
         for e in self.G.edges:
-            node_from = e[0]
-            node_to = e[1]
-            pos_from = node_and_pos[node_from]
-            pos_to = node_and_pos[node_to]
-            coord = (pos_from[0], pos_from[1], pos_to[0], pos_to[1])
-            edge_name = f'edge_{node_from}_{node_to}'
-            self.canvas.coords(edge_name, coord)
+
+            if self.is_di_graph:
+                node_from = e[0]
+                node_to = e[1]
+                pos_from = node_and_pos[node_from]
+                pos_to = node_and_pos[node_to]
+                coord = (pos_from[0], pos_from[1], pos_to[0], pos_to[1])
+
+                edge_name = f'edge_{node_from}_{node_to}'
+                self.canvas.coords(edge_name, coord)
+            else:
+                p0 = node_and_pos[e[0]]
+                p1 = node_and_pos[e[1]]
+                d0 = (p0[0] - event.x)**2 + (p0[1] - event.y)**2
+                d1 = (p1[0] - event.x) ** 2 + (p1[1] - event.y) ** 2
+                if d0 < d1:
+                    node_from = e[0]
+                    node_to = e[1]
+                else:
+                    node_from = e[1]
+                    node_to = e[0]
+
+                pos_from = node_and_pos[node_from]
+                pos_to = node_and_pos[node_to]
+                coord = (pos_from[0], pos_from[1], pos_to[0], pos_to[1])
+
+                for edge_name in [f'edge_{node_from}_{node_to}', f'edge_{node_to}_{node_from}']:
+                    self.canvas.coords(edge_name, coord)
 
             # node_from = e[1]
             # node_to = e[0]
@@ -401,5 +462,5 @@ class Example(tk.Frame):
 
 if __name__ == "__main__":
     root = tk.Tk()
-    Example(root).pack(fill="both", expand=True)
+    Editor(root).pack(fill="both", expand=True)
     root.mainloop()
