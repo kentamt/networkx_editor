@@ -4,7 +4,7 @@ networkx graph editor with tkinter
 Now developing ...
 
 ![image](https://user-images.githubusercontent.com/3883043/112914657-7c536100-9137-11eb-815c-a5748690ea2f.png)
-
+![image](https://user-images.githubusercontent.com/3883043/113003016-49e44b00-91ad-11eb-9760-01d725cb8a92.png)
 # TODO
 - [ ] save graph as pickle
 - [ ] load graph from pickle
