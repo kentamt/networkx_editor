@@ -38,7 +38,7 @@ class Editor(tk.Frame):
         self.canvas.bind("<Button-3>", self.on_right_click)
         self.canvas.bind("<Button-2>", self.on_center_click)
 
-        self.colors = ('blue', 'orange', 'gray', 'green')
+        self.colors = ('skyblue', 'orange', 'gray', 'green')
         # loc_types = tk.StringVar(value=self.location_types)
         # self.listbox = tk.Listbox(listvariable=loc_types, height=5, selectmode=tk.SINGLE)
         # self.listbox.pack()
@@ -198,7 +198,8 @@ class Editor(tk.Frame):
     def on_right_click(self, event):
 
         if self.action == Action.ADD_NODE:
-            self.create_new_window(event)
+            if self.G is not None:
+                self.create_new_window(event)
 
             # item_idx_list = self.listbox.curselection()[0]
             # color = self.location_colors[item_idx_list]
@@ -219,8 +220,8 @@ class Editor(tk.Frame):
                 return
             node_name = tags[1]
 
-            if node_name not in self.selected_nodes:
-                self.selected_nodes.append(node_name)
+            # if node_name not in self.selected_nodes:
+            self.selected_nodes.append(node_name)
 
             if len(self.selected_nodes) == 3:
                 del self.selected_nodes[0]
@@ -297,6 +298,9 @@ class Editor(tk.Frame):
 
     def add_edge(self):
 
+        if self.selected_nodes[0] == self.selected_nodes[1]:
+            return
+
         if len(self.selected_nodes) == 2:
             node_and_pos = nx.get_node_attributes(self.G, 'pos')
             node_from = self.selected_nodes[1]
@@ -315,8 +319,11 @@ class Editor(tk.Frame):
                 self.G.add_edge(node_from, node_to)
                 print(self.G.edges)
                 print(edge_name)
+                self.canvas.tag_lower(edge_name)
         else:
             pass
+
+
 
     def create_node(self, x, y, color, node_name):
         """Create a token at the given coordinate in the given color"""
@@ -324,13 +331,13 @@ class Editor(tk.Frame):
         if node_name in self.G.nodes:
             print(f'{node_name} exists.')
             return
-
+        radius = 6
         obj = self.canvas.create_oval(
-            x - 5,
-            y - 5,
-            x + 5,
-            y + 5,
-            outline=color,
+            x - radius,
+            y - radius,
+            x + radius,
+            y + radius,
+            outline='blue',
             fill=color,
             tags=("token", node_name),
         )
@@ -411,9 +418,12 @@ class Editor(tk.Frame):
 
         # move the object the appropriate amount
         self.canvas.move(self._drag_data["node_name"], delta_x, delta_y)
+        node_name = self.canvas.gettags(self._drag_data['item'])[1]
+        self.G.nodes[node_name]['pos'] = (event.x, event.y)
 
         # move edges connected by target node
         node_and_pos = nx.get_node_attributes(self.G, 'pos')
+
         for e in self.G.edges:
 
             if self.is_di_graph:
@@ -456,8 +466,6 @@ class Editor(tk.Frame):
         self._drag_data["x"] = event.x
         self._drag_data["y"] = event.y
 
-        node_name = self.canvas.gettags(self._drag_data['item'])[1]
-        self.G.nodes[node_name]['pos'] = (event.x, event.y)
 
 
 if __name__ == "__main__":
