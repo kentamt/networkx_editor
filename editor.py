@@ -1,8 +1,12 @@
 from enum import Enum, auto
+
+import pickle
 from copy import deepcopy
 import tkinter as tk  # python 3
+from tkinter import filedialog
 import networkx as nx
 import matplotlib.pyplot as plt
+
 
 
 class Action(Enum):
@@ -45,10 +49,23 @@ class Editor(tk.Frame):
         sub_menu.add_command(label='Graph', command=self.init_graph)
         sub_menu.add_command(label='Directed graph', command=self.init_di_graph)
         file_menu.add_cascade(label="New", menu=sub_menu)
+
         # File > Open
-        file_menu.add_command(label='Open')
+        file_menu.add_command(label='Open', command=self.load_from_pickle)
+
         # File > Save as...
-        file_menu.add_command(label='Save as...')
+        # Save as a pickle
+        file_menu.add_command(label='Save as...', command=self.save_as_pickle)
+
+        # File > Export as
+        export_menu = tk.Menu(file_menu, tearoff=0)
+        # Export as a pickle
+        export_menu.add_command(label='Export NX data as a pickle', command=self.export_as_nx)
+
+        # Export as a text
+        export_menu.add_command(label='Export as text', command=self.export_as_text)
+
+        file_menu.add_cascade(label="Export", menu=export_menu)
 
         # Edit menu
         self.edit_menu = tk.Menu(self.menu_bar, tearoff=0)
@@ -112,6 +129,156 @@ class Editor(tk.Frame):
         self.edit_menu.entryconfig(0, state=tk.NORMAL)
         self.edit_menu.entryconfig(1, state=tk.NORMAL)
         self.edit_menu.entryconfig(2, state=tk.NORMAL)
+
+    def save_as_pickle(self):
+        # filename = 'graph.pkl'
+
+        # save with the dialog
+        filename = filedialog.asksaveasfilename(
+            title='Save as a file',
+            filetypes=[('Pickle files', '*.pkl'), ('All files', '*')]
+         )
+
+
+        with open(filename, 'wb') as f:
+            pickle.dump(self.G, f)
+
+    def export_as_nx(self):
+        # filename with dialog
+        filename = filedialog.asksaveasfilename(
+            title='Save as a file',
+            filetypes=[('Pickle files', '*.pkl'), ('All files', '*')]
+        )
+        with open(filename, 'wb') as f:
+            pickle.dump(self.G, f)
+
+        print('Exported nx object as a pickle file.')
+
+    def export_as_text(self):
+        """
+        Adjacency matrix --> XXXX_adjacency.txt
+        Position of nodes --> XXXX_position.txt
+        Attributes of nodes and edges --> XXXX_attributes.txt
+        """
+
+        # define XXXX
+        filename = filedialog.asksaveasfilename(
+            title='Save as a file',
+            filetypes=[('All files', '*')]
+        )
+
+        # Adjacency matrix
+        adj = nx.adjacency_matrix(self.G)
+        with open(filename + '_adjacency.txt', 'w') as f:
+            f.write(str(adj))
+
+        # Position of nodes
+        pos = nx.get_node_attributes(self.G, 'pos')
+        with open(filename + '_position.txt', 'w') as f:
+            f.write(str(pos))
+
+        # Attributes of nodes and edges
+        with open(filename + '_attributes.txt', 'w') as f:
+            f.write('Nodes\n')
+            for k, v in self.G.nodes(data=True):
+                f.write(f'{k}: {v}\n')
+            f.write('Edges\n')
+            for e in self.G.edges(data=True):
+                f.write(f'{e}\n')
+
+        print(f'Exported as text files as {filename}')
+
+    def load_from_pickle(self):
+        # filename = 'graph.pkl'
+
+        # read the file from the dialog
+        filename = filedialog.askopenfilename(
+            title='Open a file',
+            filetypes=[('Pickle files', '*.pkl'), ('All files', '*')]
+        )
+
+        with open(filename, 'rb') as f:
+            G = pickle.load(f)
+
+        # check if the graph is directed or not
+        if isinstance(G, nx.DiGraph):
+            self.is_di_graph = True
+            self.G = nx.DiGraph()
+        else:
+            self.is_di_graph = False
+            self.G = nx.Graph()
+
+        self.canvas.delete(tk.ALL)
+        self.edit_menu.entryconfig(0, state=tk.NORMAL)
+        self.edit_menu.entryconfig(1, state=tk.NORMAL)
+        self.edit_menu.entryconfig(2, state=tk.NORMAL)
+
+        # make nodes and edges according to the graph G
+        for node, attr in G.nodes.data():
+            pos = attr['pos']
+            self.create_node(pos[0], pos[1], 'skyblue', node)
+
+
+        # # node_attr_dict from G
+        # for node, attr in G.nodes.data():
+        #     for k, v in attr.items():
+        #         if k != 'pos':
+        #             self.node_attr_dict[k] = v
+        #
+        # for node_from, node_to, attr in G.edges.data():
+        #     for k, v in attr.items():
+        #         self.edge_attr_dict[k] = v
+
+
+        # for nodes
+        # for node, attr in G.nodes.data():
+        #     self.G.add_node(node)
+        #     self.G.nodes[node][attr] = value
+
+        # nodes
+        for node in G.nodes:
+            pos = nx.get_node_attributes(G, 'pos')
+            self.G.nodes[node]['pos'] = pos[node]
+            for k, v in G.nodes[node].items():
+                self.G.nodes[node][k] = v
+
+        for node_from, node_to, attr in G.edges.data():
+            node_and_pos = nx.get_node_attributes(G, 'pos')
+            edge_name = f'edge_{node_from}_{node_to}'
+
+            # # add node
+            # if node_from in self.G.nodes:
+            #     self.G.add_node(node_from)
+            #     # copy attr of node from to self.G
+            #     for attr, value in G.nodes[node_from].items():
+            #         if value != "":
+            #             self.G.nodes[node_from][attr] = value
+            #
+            # if node_to in self.G.nodes:
+            #     self.G.add_node(node_to)
+            #     # copy attr of node from to self.G
+            #     for attr, value in G.nodes[node_to].items():
+            #         if value != "":
+            #             self.G.nodes[node_to][attr] = value
+
+            # add edge
+            if (node_from, node_to) not in self.G.edges:
+                self.G.add_edge(node_from, node_to)
+                for attr, value in G.edges[node_from, node_to].items():
+                    if value != "":
+                        self.G.edges[node_from, node_to][attr] = value
+
+                pos_from = node_and_pos[node_from]
+                pos_to = node_and_pos[node_to]
+                coord = (pos_from[0], pos_from[1], pos_to[0], pos_to[1])
+
+                if self.is_di_graph:
+                    self.canvas.create_line(coord, arrow=tk.FIRST, fill='black', tags=("edge", edge_name))
+                else:
+                    self.canvas.create_line(coord, arrow=tk.BOTH, fill='black', tags=("edge", edge_name))
+
+                self.canvas.tag_lower(edge_name)
+
 
     def create_new_window_for_node(self, event):
 
@@ -230,6 +397,7 @@ class Editor(tk.Frame):
                 tmp_dict[key] = item
             self.edit_node_attr_dict = tmp_dict
 
+
             # item_idx_list = self.listbox.curselection()[0]
             color = self.colors[0]
             # name = str(self.counts)
@@ -271,7 +439,15 @@ class Editor(tk.Frame):
         r += 1
 
         self.edit_node_attr_dict = self.G.nodes.data()[self.selected_node]
-        for key in self.edit_node_attr_dict.keys():
+
+        temp_node_attr_dict = deepcopy(self.edit_node_attr_dict)
+        # add dummy keys like '0', '1', '2', '3', '4' to the dict
+        for i in range(5):
+            if i not in temp_node_attr_dict.keys():
+                temp_node_attr_dict[i] = ""
+
+        # for key in self.edit_node_attr_dict.keys():
+        for key in temp_node_attr_dict.keys():
             if key == 'pos':
                 continue
             entry_key = tk.Entry(self.new_window)
@@ -280,11 +456,19 @@ class Editor(tk.Frame):
             self.entry_item_list.append(entry_item)
 
             entry_key.insert(0, key)
-            entry_item.insert(0, self.edit_node_attr_dict[key])
+            # entry_item.insert(0, self.edit_node_attr_dict[key])
+            entry_item.insert(0, temp_node_attr_dict[key])
             entry_key.grid(row=r, column=0)
             entry_item.grid(row=r, column=1)
 
             r += 1
+
+        # reflect the change to the edit_node_attr_dict
+        # if the values in temp are not empty, update the values
+        # for key, value in temp_node_attr_dict.items():
+        #     if value != "":
+        #         self.edit_node_attr_dict[key] = value
+
 
         set_button = tk.Button(self.new_window, text="Edit node", command=set_attribute)
         set_button.grid(row=r, column=1)
@@ -457,8 +641,20 @@ class Editor(tk.Frame):
                 if config["tags"][0] == 'token' and config['tags'][1] == self.selected_node:
                     config['tags'][1] = node_name
                     self.canvas.create_oval(*self.canvas.coords(obj), **config)
-                    self.canvas.delete(self.selected_node)
 
+
+                    # Update the label
+                    for label in self.canvas.find_withtag('label'):
+                        label_tags = self.canvas.gettags(label)
+                        if self.selected_node in label_tags:
+                            # Update the text of the label
+                            self.canvas.itemconfig(label, text=node_name)
+                            # Update the label's tag to match the new node name
+                            updated_tags = tuple(tag if tag != self.selected_node else node_name for tag in label_tags)
+                            self.canvas.itemconfig(label, tags=updated_tags)
+                            break
+
+                    self.canvas.delete(self.selected_node)
                     # 色をリセットする関数で読んでいるconfigのリストをここで更新すること
 
             # Change tk edge name
@@ -474,6 +670,7 @@ class Editor(tk.Frame):
                     self.canvas.create_line(*self.canvas.coords(obj), **config)
                     self.canvas.delete(edge_name)
                     self.canvas.tag_lower(config['tags'][1])
+
 
         # DEBUG
         for k, v in self.G.nodes(data=True):
@@ -525,6 +722,16 @@ class Editor(tk.Frame):
             outline='blue',
             fill=color,
             tags=("token", node_name),
+        )
+
+        # Add the label near the node
+        label_offset = 10  # Distance between the label and the node
+        self.canvas.create_text(
+            x + label_offset, y - label_offset,
+            text=node_name,
+            fill="black",  # Set label text color
+            font=("Arial", 10),  # Set font and size
+            tags=("label", node_name),  # Optional: Add tags for easy manipulation
         )
 
         config = {opt: self.canvas.itemcget(obj, opt) for opt in self.canvas.itemconfig(obj)}
